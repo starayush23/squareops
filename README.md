@@ -1,3 +1,72 @@
+# SquareOps DevOps Assignment
+
+## Overview
+
+This project deploys the Example Voting Application on Kubernetes using Minikube.
+
+Application Components:
+
+* Vote Service (Frontend)
+* Redis (Message Queue)
+* Worker Service
+* PostgreSQL Database
+* Result Service (Frontend)
+
+## Architecture
+
+Vote -> Redis -> Worker -> PostgreSQL -> Result
+
+## Improvements Implemented
+
+### Kubernetes Enhancements
+
+* Migrated PostgreSQL from Deployment to StatefulSet
+* Added PersistentVolumeClaim (PVC) for PostgreSQL
+* Added Kubernetes Secret for PostgreSQL credentials
+* Added Resource Requests and Limits
+* Added Readiness Probes
+* Added Liveness Probes
+* Added NGINX Ingress
+
+### CI/CD
+
+* GitHub Actions workflow for Kubernetes manifest validation
+
+## Deployment Steps
+
+### Start Minikube
+
+```bash
+minikube start --driver=docker
+```
+
+### Deploy Application
+
+```bash
+kubectl apply -f k8s-specifications/
+```
+
+### Verify
+
+```bash
+kubectl get pods
+kubectl get svc
+kubectl get ingress
+```
+
+## Repository Structure
+
+```text
+k8s-specifications/
+.github/workflows/
+README.md
+```
+
+## Author
+
+Ayush Kumar
+
+GitHub: starayush23
 # Example Voting App
 
 A simple distributed application running across multiple Docker containers.
