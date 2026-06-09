@@ -1,30 +1,27 @@
 name: Kubernetes CI
 
 on:
-push:
-branches:
-- main
-- statefulset-pvc
-pull_request:
+  push:
+    branches:
+      - main
+      - statefulset-pvc
+  pull_request:
 
 jobs:
-validate:
-runs-on: ubuntu-latest
+  validate:
+    runs-on: ubuntu-latest
 
-```
-steps:
-- name: Checkout Repository
-  uses: actions/checkout@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-- name: Validate Kubernetes Manifests
-  run: |
-    find k8s-specifications -name "*.yaml" -type f | while read file; do
-      echo "Checking $file"
-      grep "apiVersion:" "$file"
-      grep "kind:" "$file"
-    done
+      - name: Validate Kubernetes Manifests
+        run: |
+          find k8s-specifications -name "*.yaml" -type f | while read file; do
+            echo "Checking $file"
+            grep "apiVersion:" "$file"
+            grep "kind:" "$file"
+          done
 
-- name: Success
-  run: echo "Kubernetes manifest validation passed"
-```
-
+      - name: Success
+        run: echo "Kubernetes manifest validation passed"
