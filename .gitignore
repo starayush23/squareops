@@ -1,6 +1,4 @@
-*.pyc
-project.lock.json
-bin/
-obj/
-.vs/
-node_modules/
+.DS_Store
+.snapshots/
+
+
