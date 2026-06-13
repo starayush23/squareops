@@ -27,7 +27,7 @@ jobs:
 
       - name: Lint Vote Service
         run: |
-          flake8 vote || true
+          flake8 vote
 
       - name: Lint Kubernetes Manifests
         run: |
@@ -44,11 +44,11 @@ jobs:
 
       - name: Build Vote Image
         run: |
-          docker build -t starayush23/vote:${{ github.sha }} ./vote
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/vote:${{ github.sha }} ./vote
 
       - name: Push Vote Image
         run: |
-          docker push starayush23/vote:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/vote:${{ github.sha }}
 
       - name: Create Kind Cluster
         uses: helm/kind-action@v1
@@ -61,8 +61,11 @@ jobs:
         run: |
           kubectl rollout status deployment/vote --timeout=180s
 
+      - name: Port Forward Vote Service
+        run: |
+          kubectl port-forward svc/vote 8080:8080 >/tmp/portforward.log 2>&1 &
+          sleep 15
+
       - name: Smoke Test Vote Service
         run: |
-          kubectl port-forward svc/vote 8080:8080 &
-          sleep 15
           curl -f http://localhost:8080
