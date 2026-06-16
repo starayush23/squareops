@@ -24,7 +24,8 @@ A user submits a vote through the Vote application. The vote is stored in Redis 
 
 The application runs on Minikube and is exposed through NGINX Ingress.
 
-For CI/CD, I used GitHub Actions. Whenever changes are made to the `vote/` directory, the workflow builds and tests the service before deploying it into a temporary Kind cluster for validation.
+
+For CI/CD, I used GitHub Actions. Whenever changes are made under the vote/ directory, the workflow lints the application, builds a Docker image, pushes it to Docker Hub, creates a temporary Kind cluster, deploys the application, and runs a smoke test against the Vote service.
 
 ---
 
@@ -188,7 +189,7 @@ Also verify that the ingress addon is enabled.
 A couple of trade-offs I made during the assignment:
 
 * I used Minikube because it is easy to set up and reproduce locally.
-* I kept the manifests as plain Kubernetes YAML instead of converting everything to Helm.
+* I considered using Helm, but since the assignment only required improving the existing manifests, I decided to keep the deployment in plain Kubernetes YAML.
 * The CI/CD workflow only targets the Vote service because that was the requirement.
 
 ---
