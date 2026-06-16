@@ -1,162 +1,213 @@
-SquareOps DevOps Assignment
-Overview
+# SquareOps DevOps Assignment
 
-This repository contains my solution for the SquareOps DevOps assignment using the Example Voting Application.
+## Overview
 
-The application consists of:
+This repository contains my solution for the SquareOps DevOps assignment based on the Example Voting Application.
 
-Vote Service (Flask/Python)
-Redis Queue
-Worker Service (.NET)
-PostgreSQL
-Result Service (Node.js)
+The application has five components:
 
-The project was deployed on a local Minikube Kubernetes cluster and enhanced with persistence, health checks, ingress routing, and a CI/CD pipeline for the vote service.
+* Vote Service (Flask)
+* Redis
+* Worker Service (.NET)
+* PostgreSQL
+* Result Service (Node.js)
 
-Architecture
+The main goal of the assignment was to improve the Kubernetes deployment, make the database persistent, expose the application through Ingress, and build a CI/CD pipeline for the vote service.
 
+---
+
+## Architecture
 
 ![Architecture](architecture.png)
 
+A user submits a vote through the Vote application. The vote is stored in Redis and picked up by the Worker service. The Worker writes the vote into PostgreSQL, and the Result application reads from PostgreSQL to display the latest results.
 
-The application runs on a local Minikube Kubernetes cluster.
+The application runs on Minikube and is exposed through NGINX Ingress.
 
-Users access the application through an NGINX Ingress resource. Votes submitted through the Flask frontend are pushed into Redis. The .NET worker consumes votes from Redis and stores them in PostgreSQL. The Node.js result service reads data from PostgreSQL and displays the current voting results.
+For CI/CD, I used GitHub Actions. Whenever changes are made to the `vote/` directory, the workflow builds and tests the service before deploying it into a temporary Kind cluster for validation.
 
-The CI/CD pipeline uses GitHub Actions to lint, build, test, and validate changes made to the vote service.
+---
 
-Changes Made
+## What Changed
 
-Compared to the original manifests, I made the following changes:
+The original manifests worked, but there were a few areas that I wanted to improve.
 
-PostgreSQL StatefulSet
+### PostgreSQL StatefulSet
 
-The original PostgreSQL deployment was replaced with a StatefulSet. Since PostgreSQL is a stateful application, using a StatefulSet provides stable storage and predictable pod identity.
+The original setup used a Deployment for PostgreSQL. I replaced it with a StatefulSet because PostgreSQL is a stateful application and should keep its identity and storage across restarts.
 
-Persistent Storage
+### Persistent Storage
 
-A PersistentVolumeClaim (PVC) was added to PostgreSQL so that vote data survives pod restarts.
+A PersistentVolumeClaim was added for PostgreSQL.
 
-I verified persistence by deleting the PostgreSQL pod and confirming that the data remained available after Kubernetes recreated it.
+To make sure persistence was working correctly, I deleted the PostgreSQL pod and verified that the data was still available after Kubernetes recreated it.
 
-Kubernetes Secret
+### Secrets
 
-PostgreSQL credentials were moved into a Kubernetes Secret instead of being stored directly inside the manifest files.
+Database credentials were moved into a Kubernetes Secret instead of being stored directly inside the manifests.
 
-Health Checks
+### Health Checks
 
-Readiness and liveness probes were added to all workloads so Kubernetes can determine when containers are healthy and ready to receive traffic.
+Readiness and liveness probes were added to all workloads so Kubernetes can determine when a container is healthy and ready to receive traffic.
 
-Resource Requests and Limits
+### Resource Limits
 
-CPU and memory requests/limits were added to improve scheduling and prevent resource contention.
+CPU and memory requests/limits were added to every workload.
 
-NGINX Ingress
+### Ingress
 
-An Ingress resource was added for the vote and result applications instead of relying only on NodePort services.
+An NGINX Ingress resource was added for the Vote and Result applications.
 
-CI/CD Pipeline
+### CI/CD Pipeline
 
-A GitHub Actions workflow was created for the vote service.
+A GitHub Actions workflow was created specifically for the Vote service.
 
-The pipeline:
+The workflow:
 
-Lints the vote service
-Validates Kubernetes manifests
-Builds a Docker image
-Pushes the image to Docker Hub
-Creates a temporary Kind cluster
-Deploys the application
-Runs a smoke test
-Running the Application
-Prerequisites
-Docker
-Minikube
-kubectl
-Deploy
+* Lints the application code
+* Validates Kubernetes manifests
+* Builds a Docker image
+* Pushes the image to Docker Hub
+* Creates a temporary Kind cluster
+* Deploys the application
+* Runs a smoke test against the Vote service
 
-Run:
+---
 
+## Running the Application
+
+### Prerequisites
+
+Install:
+
+* Docker
+* Minikube
+* kubectl
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/starayush23/squareops.git
+cd example-voting-app
+```
+
+### Deploy
+
+```bash
 ./bootstrap.sh
+```
 
-The script starts Minikube, deploys all Kubernetes resources, waits for pods to become ready, and provides access instructions.
+The script starts Minikube, deploys all Kubernetes resources, waits for the pods to become ready, and prints the application URLs.
 
-Verify
+### Verify
 
-Check that all pods are running:
-
+```bash
 kubectl get pods
-
-Check services:
-
 kubectl get svc
-
-Check ingress:
-
 kubectl get ingress
-Access the Application
+```
+
+### Access the Application
 
 Vote application:
 
+```bash
 minikube service vote --url
+```
 
 Result application:
 
+```bash
 minikube service result --url
+```
 
-Cast a vote and verify that the result page updates after a few seconds.
+Submit a vote and verify that the Result application updates within a few seconds.
 
-Troubleshooting
-Pods Are Not Starting
+---
+
+## Troubleshooting
+
+### Pods Are Not Starting
 
 Check pod status:
 
+```bash
 kubectl get pods
+```
 
-Inspect a pod:
+Describe the pod:
 
+```bash
 kubectl describe pod <pod-name>
+```
 
-View logs:
+Check logs:
 
+```bash
 kubectl logs <pod-name>
-Votes Are Not Appearing In The Result Application
+```
 
-Check the worker logs:
+---
 
+### Vote Does Not Appear In The Result Application
+
+The first place I would look is the Worker service because it moves votes from Redis into PostgreSQL.
+
+```bash
 kubectl logs deployment/worker
+```
 
-Verify Redis and PostgreSQL are healthy:
+Also verify that Redis and PostgreSQL are running:
 
+```bash
 kubectl get pods
+```
 
-Since the worker is responsible for moving votes from Redis into PostgreSQL, this is usually the first place to investigate.
+---
 
-Ingress Is Not Accessible
+### Unable To Reach The Application Through Ingress
 
-Verify ingress resources:
+Check the ingress resource:
 
+```bash
 kubectl get ingress
+```
 
-For Minikube, ensure ingress is enabled and run:
+For Minikube:
 
+```bash
 minikube tunnel
-Trade-offs and Future Improvements
-Trade-offs
-I used Minikube because it provides a simple local Kubernetes environment that is easy to reproduce.
-I kept the manifests as plain Kubernetes YAML instead of converting everything to Helm.
-The CI/CD pipeline was implemented only for the vote service because that was the requirement.
-Future Improvements
+```
 
-With more time I would:
+Also verify that the ingress addon is enabled.
 
-Convert the manifests into a Helm chart
-Add Prometheus and Grafana monitoring
-Add integration tests
-Add TLS support for ingress traffic
-Add GitOps deployment using ArgoCD
-Demo Video
+---
+
+## Trade-offs
+
+A couple of trade-offs I made during the assignment:
+
+* I used Minikube because it is easy to set up and reproduce locally.
+* I kept the manifests as plain Kubernetes YAML instead of converting everything to Helm.
+* The CI/CD workflow only targets the Vote service because that was the requirement.
+
+---
+
+## What I Would Do Next
+
+If I had more time, I would:
+
+* Convert the manifests into a Helm chart
+* Add monitoring with Prometheus and Grafana
+* Add end-to-end integration tests
+* Add TLS for ingress traffic
+* Explore GitOps deployment using ArgoCD
+
+---
+
+## Demo Video
 
 Loom Recording:
 
 ADD_LINK_HERE
+
