@@ -1,134 +1,161 @@
-# SquareOps DevOps Assignment
+SquareOps DevOps Assignment
+Overview
 
-## Overview
+This repository contains my solution for the SquareOps DevOps assignment using the Example Voting Application.
 
-This project deploys the Example Voting Application on Kubernetes using Minikube.
+The application consists of:
 
-Application Components:
+Vote Service (Flask/Python)
+Redis Queue
+Worker Service (.NET)
+PostgreSQL
+Result Service (Node.js)
 
-* Vote Service (Frontend)
-* Redis (Message Queue)
-* Worker Service
-* PostgreSQL Database
-* Result Service (Frontend)
+The project was deployed on a local Minikube Kubernetes cluster and enhanced with persistence, health checks, ingress routing, and a CI/CD pipeline for the vote service.
 
-## Architecture
+Architecture
 
-Vote -> Redis -> Worker -> PostgreSQL -> Result
 
-## Improvements Implemented
 
-### Kubernetes Enhancements
 
-* Migrated PostgreSQL from Deployment to StatefulSet
-* Added PersistentVolumeClaim (PVC) for PostgreSQL
-* Added Kubernetes Secret for PostgreSQL credentials
-* Added Resource Requests and Limits
-* Added Readiness Probes
-* Added Liveness Probes
-* Added NGINX Ingress
+The application runs on a local Minikube Kubernetes cluster.
 
-### CI/CD
+Users access the application through an NGINX Ingress resource. Votes submitted through the Flask frontend are pushed into Redis. The .NET worker consumes votes from Redis and stores them in PostgreSQL. The Node.js result service reads data from PostgreSQL and displays the current voting results.
 
-* GitHub Actions workflow for Kubernetes manifest validation
+The CI/CD pipeline uses GitHub Actions to lint, build, test, and validate changes made to the vote service.
 
-## Deployment Steps
+Changes Made
 
-### Start Minikube
+Compared to the original manifests, I made the following changes:
 
-```bash
-minikube start --driver=docker
-```
+PostgreSQL StatefulSet
 
-### Deploy Application
+The original PostgreSQL deployment was replaced with a StatefulSet. Since PostgreSQL is a stateful application, using a StatefulSet provides stable storage and predictable pod identity.
 
-```bash
-kubectl apply -f k8s-specifications/
-```
+Persistent Storage
 
-### Verify
+A PersistentVolumeClaim (PVC) was added to PostgreSQL so that vote data survives pod restarts.
 
-```bash
+I verified persistence by deleting the PostgreSQL pod and confirming that the data remained available after Kubernetes recreated it.
+
+Kubernetes Secret
+
+PostgreSQL credentials were moved into a Kubernetes Secret instead of being stored directly inside the manifest files.
+
+Health Checks
+
+Readiness and liveness probes were added to all workloads so Kubernetes can determine when containers are healthy and ready to receive traffic.
+
+Resource Requests and Limits
+
+CPU and memory requests/limits were added to improve scheduling and prevent resource contention.
+
+NGINX Ingress
+
+An Ingress resource was added for the vote and result applications instead of relying only on NodePort services.
+
+CI/CD Pipeline
+
+A GitHub Actions workflow was created for the vote service.
+
+The pipeline:
+
+Lints the vote service
+Validates Kubernetes manifests
+Builds a Docker image
+Pushes the image to Docker Hub
+Creates a temporary Kind cluster
+Deploys the application
+Runs a smoke test
+Running the Application
+Prerequisites
+Docker
+Minikube
+kubectl
+Deploy
+
+Run:
+
+./bootstrap.sh
+
+The script starts Minikube, deploys all Kubernetes resources, waits for pods to become ready, and provides access instructions.
+
+Verify
+
+Check that all pods are running:
+
 kubectl get pods
+
+Check services:
+
 kubectl get svc
+
+Check ingress:
+
 kubectl get ingress
-```
+Access the Application
 
-## Repository Structure
+Vote application:
 
-```text
-k8s-specifications/
-.github/workflows/
-README.md
-```
+minikube service vote --url
 
-## Author
+Result application:
 
-Ayush Kumar
+minikube service result --url
 
-GitHub: starayush23
-# Example Voting App
+Cast a vote and verify that the result page updates after a few seconds.
 
-A simple distributed application running across multiple Docker containers.
+Troubleshooting
+Pods Are Not Starting
 
-## Getting started
+Check pod status:
 
-Download [Docker Desktop](https://www.docker.com/products/docker-desktop) for Mac or Windows. [Docker Compose](https://docs.docker.com/compose) will be automatically installed. On Linux, make sure you have the latest version of [Compose](https://docs.docker.com/compose/install/).
+kubectl get pods
 
-This solution uses Python, Node.js, .NET, with Redis for messaging and Postgres for storage.
+Inspect a pod:
 
-Run in this directory to build and run the app:
+kubectl describe pod <pod-name>
 
-```shell
-docker compose up
-```
+View logs:
 
-The `vote` app will be running at [http://localhost:8080](http://localhost:8080), and the `results` will be at [http://localhost:8081](http://localhost:8081).
+kubectl logs <pod-name>
+Votes Are Not Appearing In The Result Application
 
-Alternately, if you want to run it on a [Docker Swarm](https://docs.docker.com/engine/swarm/), first make sure you have a swarm. If you don't, run:
+Check the worker logs:
 
-```shell
-docker swarm init
-```
+kubectl logs deployment/worker
 
-Once you have your swarm, in this directory run:
+Verify Redis and PostgreSQL are healthy:
 
-```shell
-docker stack deploy --compose-file docker-stack.yml vote
-```
+kubectl get pods
 
-## Run the app in Kubernetes
+Since the worker is responsible for moving votes from Redis into PostgreSQL, this is usually the first place to investigate.
 
-The folder k8s-specifications contains the YAML specifications of the Voting App's services.
+Ingress Is Not Accessible
 
-Run the following command to create the deployments and services. Note it will create these resources in your current namespace (`default` if you haven't changed it.)
+Verify ingress resources:
 
-```shell
-kubectl create -f k8s-specifications/
-```
+kubectl get ingress
 
-The `vote` web app is then available on port 31000 on each host of the cluster, the `result` web app is available on port 31001.
+For Minikube, ensure ingress is enabled and run:
 
-To remove them, run:
+minikube tunnel
+Trade-offs and Future Improvements
+Trade-offs
+I used Minikube because it provides a simple local Kubernetes environment that is easy to reproduce.
+I kept the manifests as plain Kubernetes YAML instead of converting everything to Helm.
+The CI/CD pipeline was implemented only for the vote service because that was the requirement.
+Future Improvements
 
-```shell
-kubectl delete -f k8s-specifications/
-```
+With more time I would:
 
-## Architecture
+Convert the manifests into a Helm chart
+Add Prometheus and Grafana monitoring
+Add integration tests
+Add TLS support for ingress traffic
+Add GitOps deployment using ArgoCD
+Demo Video
 
-![Architecture diagram](architecture.excalidraw.png)
+Loom Recording:
 
-* A front-end web app in [Python](/vote) which lets you vote between two options
-* A [Redis](https://hub.docker.com/_/redis/) which collects new votes
-* A [.NET](/worker/) worker which consumes votes and stores them in…
-* A [Postgres](https://hub.docker.com/_/postgres/) database backed by a Docker volume
-* A [Node.js](/result) web app which shows the results of the voting in real time
-
-## Notes
-
-The voting application only accepts one vote per client browser. It does not register additional votes if a vote has already been submitted from a client.
-
-This isn't an example of a properly architected perfectly designed distributed app... it's just a simple
-example of the various types of pieces and languages you might see (queues, persistent data, etc), and how to
-deal with them in Docker at a basic level.
+ADD_LINK_HERE
