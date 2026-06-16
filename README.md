@@ -16,6 +16,7 @@ The project was deployed on a local Minikube Kubernetes cluster and enhanced wit
 Architecture
 
 
+![Architecture](architecture.png)
 
 
 The application runs on a local Minikube Kubernetes cluster.
